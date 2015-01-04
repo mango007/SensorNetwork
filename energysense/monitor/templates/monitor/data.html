@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Energy Sense Data</title>
+	<link rel="stylesheet" href="../../../static/css/style.css" type="text/css">
+    <script language="javascript" type="text/javascript">
+        function resizeIframe(obj) {
+            obj.style.height = obj.contentWindow.document.body.scrollHeight + 'px';
+        }
+    </script>
+</head>
+<body>
+	<div id="background-yellow">
+		background
+	</div>
+	<div class="page">
+		<div class="about-page">
+             <div class = "header">
+                <ul>
+                    <li>
+                        <a href="/logout/">Logout</a>
+                    </li>
+                </ul>
+            </div>
+			<div class="sidebar">
+				<ul>
+					<li class="home">
+						<a href="{% url "monitor:home" %}">Sensors</a>
+					</li>
+					<li class="selected about">
+						<a href="{% url "monitor:data" %}">Data</a>
+					</li>
+				</ul>
+			</div>
+			<div class="body">
+				<div class="content-about">
+                   	<div>
+                        <iframe src="{% url 'monitor:linewithfocuschart' %}" frameBorder="0" width="1200px" scrolling = "no" onload='javascript:resizeIframe(this);' ></iframe>
+					</div>
+                </div>
+
+				<div class="footer">
+
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

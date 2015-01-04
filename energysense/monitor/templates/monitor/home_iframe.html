@@ -1,0 +1,112 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+
+    </style>
+
+</head>
+<body>
+    <div style="width: 50%;float: left" >
+        <!--table of all sensors-- >
+        <div style="height: 50%;">
+            All Sensors:<br>
+            <table style="width:100%">
+                <tr>
+                    <th>Sensor ID</th>
+                    <th>Last Connected Time</th>
+                    <th>Base Station</th>
+                </tr>
+                {% for sensor in allSensors %}
+                <tr>
+                    <td>{{ sensor.sensor_id }}</td>
+                    <td>{{ sensor.last_connected_time }}</td>
+                    <td>
+                        {% if sensor.is_base_station == 1 %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            <br>
+        </div>
+        <!--form to add or delete user's sensors-- >
+        <div style="border: 1px solid black;padding: 5px">
+            <form url = "{% url 'monitor:home_iframe' %}" method = "post">{% csrf_token %}
+                Add Sensors:
+                <br>
+                {% for sensor in notUserSensors %}
+                    <input type="checkbox" name="add" value="{{ sensor.sensor_id }}"> {{ sensor.sensor_id }}
+                {% endfor %}
+                <br>
+                Delete Sensors:
+                <br>
+                {% for sensor in userSensors %}
+                    <input type="checkbox" name="delete" value="{{ sensor.sensor_id }}"> {{ sensor.sensor_id }}
+                {% endfor %}
+                <br>
+                <input type="submit">
+            </form>
+        </div>
+    </div>
+    <!--display the network-->
+    <div style="width: 500px ;height:700px;float: left;margin: 10px 0px 0px 50px" >
+        <div style = "margin: 0px 0px 30px 0px">Sensor Network(red nodes are your sensors) </div>
+        <div style="width: 500px;height:500px" id="topology_container"></div>
+    </div>
+    <script src="{% static "components/sigma/sigma.min.js" %}"></script>
+    <script>
+        var s = new sigma('topology_container');
+
+        {% for us in userSensors %}
+            s.graph.addNode({
+                id:'{{ us.sensor_id }}',
+                label:'Sensor {{ us.sensor_id  }}',
+                x:{{ us.x }},
+                y:{{ us.y }},
+                size: 1,
+                color: '#f00'
+            });
+        {% endfor %}
+
+
+        {% for us in notUserSensors %}
+            s.graph.addNode({
+                id:'{{ us.sensor_id }}',
+                label:'Sensor {{ us.sensor_id  }}',
+                x:{{ us.x }},
+                y:{{ us.y }},
+                size: 1,
+                color: '#000'
+            });
+        {% endfor %}
+
+        {% for t in topology %}
+            s.graph.addEdge({
+                id:'{{ t.id }}',
+                source:'{{ t.sensorID1 }}',
+                target:'{{ t.sensorID2 }}',
+                color:'#000'
+            });
+        {% endfor %}
+
+        s.refresh();
+    </script>
+
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+<head>
+    <title>Energy Senser</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="{% static "components/platform/platform.js" %}"></script>
+    <link rel="stylesheet" href="{% static "styles/style.css" %}">
+    <link rel="import" href="{% static "components/font-roboto/roboto.html" %}">
+    <link rel="import" href="{% static "components/core-header-panel/core-header-panel.html" %}">
+    <link rel="import" href="{% static "custom/register-form.html" %}">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <style>
+       a#login {
+            text-decoration: none;
+        }
+       a:link  {color:#000000; background-color:transparent}
+       a:visited {color:#000000; background-color:transparent}
+       a:hover   {color:orange; background-color:transparent}
+       a:active  {color:orange; background-color:transparent}
+    </style>
+</head>
+<body unresolved touch-action="auto">
+<core-header-panel>
+    <core-toolbar>
+        <div layout vertical center>
+            <h1>Welcome to Energy Senser</h1>
+        </div>
+    </core-toolbar>
+
+    <div class="container" layout vertical center>
+        <h1>Register</h1>
+        <register-form>
+            <a id="login" href="{% url "login" %}" >Login</a>
+        </register-form>
+    </div>
+</core-header-panel>
+</body>
+</html>

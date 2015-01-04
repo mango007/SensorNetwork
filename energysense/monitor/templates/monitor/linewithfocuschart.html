@@ -1,0 +1,171 @@
+{% load nvd3_tags %}
+<head>
+    {% include_chart_jscss %}
+    {# Jquery CDN : Needed when using jquery_on_ready=True #}
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="../../../static/timeline/timeline.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../static/css/timeline.css">
+    {% load_chart charttypev chartdatav chartcontainerv extrav %}
+    {% load_chart charttypei chartdatai chartcontaineri extrai %}
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+
+            padding: 5px;
+            text-align: left;
+        }
+        p {
+            line-height: 200%;
+        }
+        div.active {
+            height: 10px;
+        }
+    </style>
+    <script type="text/javascript">
+        var timeline = null;
+
+        google.load("visualization", "1");
+
+        // Set callback to run when API is loaded
+        google.setOnLoadCallback(drawVisualization);
+
+        // Called when the Visualization API is loaded.
+        function drawVisualization() {
+            // Create and populate a data table.
+            var data = new google.visualization.DataTable();
+            data.addColumn('datetime', 'start');
+            data.addColumn('datetime', 'end');
+            data.addColumn('string', 'content');
+            data.addColumn('string', 'group');
+
+            var order = 1;
+            {% for bs, lis in activeTime.items %}
+                {% for sy,smo,sd,sh,smi,ss,ey,emo,ed,eh,emi,es in lis %}
+                    var start = new Date({{ sy }},{{ smo }},{{ sd }},{{ sh }},{{ smi }},{{ ss }});
+                    var end = new Date({{ ey }},{{ emo }},{{ ed }},{{ eh }},{{ emi }},{{ es }});
+                    var activeText = "<div class='active'>" + "</div>";
+                    var bsText = "Base Station " + {{ bs }};
+                    data.addRow([start, end, activeText, bsText]);
+                {% endfor %}
+            {% endfor %}
+
+
+            // specify options
+            var options = {
+                width:  "100%",
+                //height: "300px",
+                height: "auto",
+                layout: "box",
+                editable: false,
+                eventMargin: 5,  // minimal margin between events
+                eventMarginAxis: 0, // minimal margin beteen events and the axis
+                showMajorLabels: false,
+                axisOnTop: true,
+                // groupsWidth : "200px",
+                groupsChangeable : true,
+                groupsOnRight: false,
+                stackEvents: false
+            };
+
+            // Instantiate our timeline object.
+            timeline = new links.Timeline(document.getElementById('activeTimeLine'), options);
+
+            // Draw our timeline with the created data and options
+            timeline.draw(data);
+        }
+    </script>
+</head>
+<body>
+    <!--form which allows user to choose the time interval, sensors and test -->
+    <form url = "{% url 'monitor:linewithfocuschart' %}" method = "post">{% csrf_token %}
+        <p>
+            Starttime: <input type="date" name="start" value="2014-11-01">
+            Endtime:<input type="date" name="end" value="2014-11-30"><br>
+            Select Sensors:
+            {% for id in userSensors %}
+                     <input type="checkbox" name="sensorID" value="{{ id }}"> {{ id }}
+            {% endfor %}
+            <br>
+            Which Test:
+            <select name = 'experiment'>
+                {% for i in exps %}
+                    {% if i == selectedExp %}
+                        {% if i == 0%}
+                            <option value="{{ selectedExp }}" selected = "selected">Random</option>
+                        {% elif i == 1 %}
+                            <option value="{{ selectedExp }}" selected = "selected">Active One Base Station</option>
+                        {% elif i == 2 %}
+                            <option value="{{ selectedExp }}" selected = "selected">Active All Base Stations</option>
+                        {% else %}
+                            <option value="{{ selectedExp }}" selected = "selected">Moving Base Stations</option>
+                        {% endif %}
+
+                    {% else %}
+                        {% if i == 0%}
+                            <option value="{{ i }}">Random</option>
+                        {% elif i == 1 %}
+                            <option value="{{ i }}">Active One Base Station</option>
+                        {% elif i == 2 %}
+                            <option value="{{ i }}">Active All Base Stations</option>
+                        {% else %}
+                            <option value="{{ i }}">Moving Base Stations</option>
+                        {% endif %}
+
+                    {% endif %}
+                {% endfor %}
+            </select><br>
+            <input type="submit">
+        </p>
+    </form>
+
+    <!--display the activated time for each base station-->
+    {% if activeTime.keys %}
+        <div style="float: left;width: 100%;padding: 0 0 30px 0">
+             Activated time of each base station:
+            <div  id = "activeTimeLine" ></div>
+        </div>
+    {% endif %}
+
+    <!--voltage-->
+    <div style="float: left; width: 50%;padding: 0px 0px 30px 0px">
+        {% include_container chartcontainerv 400 '100%' %}
+    </div>
+
+    <!--cumulative current-->
+    <div style="float: left; width: 50%;padding: 0px 0px 30px 0px">
+        {% include_container chartcontaineri 400 '100%' %}
+    </div>
+
+    <!--cumulative current decrease rate for each chosen sensor-->
+    <!--cumulative current decrease rate for each chosen sensor-->
+    <div style="float: left; width: 50%; padding: 30px">
+        <br>
+        {% for id, slope in slopes.items %}
+            Sensor {{ id }}
+             <table style="width:100%">
+                <tr>
+                    <th>Test</th>
+                    <th>Slope</th>
+                </tr>
+                {% for key, val in slope.items %}
+                <tr>
+                    {% if key == 0 %}
+                        <td>Random</td>
+                    {% elif key == 1 %}
+                        <td>One BaseStation</td>
+                    {% elif key == 2%}
+                        <td>All BaseStations</td>
+                    {% else %}
+                        <td>Moving BaseStations</td>
+                    {% endif %}
+                    <td>{{ val }} </td>
+                </tr>
+                {% endfor %}
+              </table>
+        {% endfor %}
+    </div>
+</body>
