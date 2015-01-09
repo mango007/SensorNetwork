@@ -12,13 +12,12 @@ import calendar
 import MySQLdb
 from sqlwsn import DatabaseAccess
 import setting
-# from sqlwsn import MyDataModel
-# import sys
+from sqlwsn import MyDataModel
+import sys
 
 #in our simulation, the start time is set to 2014-11-01 00:00:00
 timeStamp = time.struct_time((2014,11,1,0,0,0,0,0,0))
 
-routingTable = None
 sensors = {} #all the sensors
 
 #pack the message sent from each sensor
@@ -89,15 +88,15 @@ class Sensor:
         self.receivedMessage = 0 #reset the number of received messages to 0
 
     #receive routing information from base station
-    def receiveRoutingTable(self):
-        if self.id in routingTable.keys(): #if sensor is not base station
-            self.nextNode = sensors[routingTable[self.id]]
+    def receiveRoutingTable(self, table):
+        if self.id in table.keys(): #if sensor is not base station
+            self.nextNode = sensors[table[self.id]]
         else:
             self.nextNode = None
 
 #Base stations have all the functions of regular sensors.
 #Base stations alse have the function: send messages to remote server
-exp = None
+# exp = None
 class BaseStation(Sensor):
     ip = None   #ip address for connecting with remote server
     port = None
@@ -106,6 +105,8 @@ class BaseStation(Sensor):
         Sensor.__init__(self, id, remainingEnergy)
         self.ip = ip
         self.port = port
+        self.routingRound = 0
+        self.table = None
 
     def sendToServer(self):
 
@@ -141,27 +142,48 @@ class BaseStation(Sensor):
             pass
         return m
 
-#In our simulation, we assume there is virtual base station which retrieves routing information from server.
-#In real network, each base station should retrieve such information from server. But this will not impact the result.
-routingRound = 0
-def getRoutingTable():
-    global routingTable,sensors,routingRound
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((setting.host, setting.port))
-    #"chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)" identifies the request as retrieving routing information
-    #Base station should have a counter which records routing round, which is synchronized between all base stations
-    sock.sendall(chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)+str(routingRound))
-    routingTable = {}
-    r = sock.recv(1024)
-    r = r.split(',')
-    for e in r[0:-1]:
-        e = e.split(':')
-        routingTable[ord(e[0])] = ord(e[1])
+    # each base station should retrieve routing information from server, then broadcast to other sensors
+    def getRoutingTable(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((setting.host, setting.port))
+        #"chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)" identifies the request as retrieving routing information
+        #Base station should have a counter which records routing round, which is synchronized between all base stations
+        sock.sendall(chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)+str(self.routingRound))
 
-    for sensor in sensors.values():
-        sensor.receiveRoutingTable()
+        r = sock.recv(1024)
+        r = r.split(',')
+        self.table = {}
+        for e in r[0:-1]:
+            e = e.split(':')
+            self.table[ord(e[0])] = ord(e[1])
 
-    routingRound += 1
+        #broadcast routing information
+        for sensor in sensors.values():
+            sensor.receiveRoutingTable(self.table)
+
+        self.routingRound += 1
+
+# #In our simulation, we assume there is virtual base station which retrieves routing information from server.
+# #In real network, each base station should retrieve such information from server. But this will not impact the result.
+# routingRound = 0
+# def getRoutingTable():
+#     global routingTable,sensors,routingRound
+#     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     sock.connect((setting.host, setting.port))
+#     #"chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)" identifies the request as retrieving routing information
+#     #Base station should have a counter which records routing round, which is synchronized between all base stations
+#     sock.sendall(chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)+str(routingRound))
+#     routingTable = {}
+#     r = sock.recv(1024)
+#     r = r.split(',')
+#     for e in r[0:-1]:
+#         e = e.split(':')
+#         routingTable[ord(e[0])] = ord(e[1])
+#
+#     for sensor in sensors.values():
+#         sensor.receiveRoutingTable()
+#
+#     routingRound += 1
 
 #check if all the sensors have remaining energy
 def hasEnergy():
@@ -181,21 +203,26 @@ if __name__ == "__main__":
     #     print "3: moving base stations"
     #     sys.exit()
 
-    global timeStamp,sensors,routingTable
+    global timeStamp,sensors
 
     dba = DatabaseAccess()
     baseStations = {}
     for rs in dba.regularSensors.values():
         sensors[rs.sensorID] = Sensor(rs.sensorID, rs.remainingEnergy)
     for bs in dba.baseStations.values():
-        baseStation =  BaseStation(setting.host, setting.port, bs.sensorID, bs.remainingEnergy)
+        baseStation = BaseStation(setting.host, setting.port, bs.sensorID, bs.remainingEnergy)
         sensors[bs.sensorID] = baseStation
         baseStations[bs.sensorID] = baseStation
 
-    getRoutingTable()
+    #get routing information
+    for bs in baseStations.values():
+        bs.getRoutingTable()
+
+    table = baseStations[0].table
     activeBS = [] #activated base station
+
     for baseStation in baseStations.values():
-        if baseStation.id in routingTable.values() and baseStation.nextNode is None:
+        if baseStation.id in table.values() and baseStation.nextNode is None:
             activeBS.append(baseStation)
 
     counter = 0
@@ -222,10 +249,14 @@ if __name__ == "__main__":
 
         #retrieve routing information
         if counter%(setting.rt) == 0:
-            getRoutingTable()
-            activeBS = []
+            for bs in baseStations.values():
+                bs.getRoutingTable()
+
+            table = baseStations[0].table
+            activeBS = [] #activated base station
+
             for baseStation in baseStations.values():
-                if baseStation.id in routingTable.values() and baseStation.nextNode is None:
+                if baseStation.id in table.values() and baseStation.nextNode is None:
                     activeBS.append(baseStation)
 
 

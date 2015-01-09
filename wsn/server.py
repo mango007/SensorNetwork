@@ -26,7 +26,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
         str_rout = chr(0x0F)+chr(0x10)+chr(0x11)+chr(0x12)+chr(0x13)+chr(0x19)
         if self.data[0:6] == str_rout:
             #In the received message, [6:end] byes indicate the routing round
-            self.request.sendall(route.getRoutingTable(int(self.data[6:len(self.data)]),exp))
+            self.request.sendall(route.getRoutingTable(int(self.data[6:len(self.data)])))
             print int(self.data[6:len(self.data)])
             return
         dm = MyDataModel(self.data, exp)

@@ -141,6 +141,19 @@ class DatabaseAccess():
             cursor.execute(tmpcommand)
         db.close()
 
+    #get remaining energy of sensors
+    #return a map: key: sensor ID; value: remaining energy
+    def getRemianingEnergy(self):
+        re = {}
+        db = MySQLdb.connect(self.sqladd,self.userid,self.userpsw,self.database)
+        cursor = db.cursor()
+        cursor.execute("SELECT sensor_id, remaining_energy FROM monitor_sensor;")
+        sensors = cursor.fetchall()
+        for sensor in sensors:
+            re[int(sensor[0])] = sensor[1]
+        db.close()
+        return re
+
 #this class inserts received messages into database
 class MyDataModel(object):
     sqladd = setting.sqladd
