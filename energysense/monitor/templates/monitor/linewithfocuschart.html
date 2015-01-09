@@ -15,7 +15,7 @@
         }
         th, td {
 
-            padding: 5px;
+            padding: 1px;
             text-align: left;
         }
         p {
@@ -141,31 +141,60 @@
     </div>
 
     <!--cumulative current decrease rate for each chosen sensor-->
-    <!--cumulative current decrease rate for each chosen sensor-->
-    <div style="float: left; width: 50%; padding: 30px">
+{#    <div style="float: left; width: 100%; padding: 30px">#}
+{#        <br>#}
+{#        {% for id, slope in slopes.items %}#}
+{#            Sensor {{ id }}#}
+{#             <table style="width:100%">#}
+{#                <tr>#}
+{#                    <th>Test</th>#}
+{#                    <th>Slope</th>#}
+{#                </tr>#}
+{#                {% for key, val in slope.items %}#}
+{#                <tr>#}
+{#                    {% if key == 0 %}#}
+{#                        <td>Random</td>#}
+{#                    {% elif key == 1 %}#}
+{#                        <td>One BaseStation</td>#}
+{#                    {% elif key == 2%}#}
+{#                        <td>All BaseStations</td>#}
+{#                    {% else %}#}
+{#                        <td>Moving BaseStations</td>#}
+{#                    {% endif %}#}
+{#                    <td>{{ val }} </td>#}
+{#                </tr>#}
+{#                {% endfor %}#}
+{#              </table>#}
+{#        {% endfor %}#}
+{#    </div>#}
+    <div style="float: left; width: 90%; padding: 30px">
         <br>
-        {% for id, slope in slopes.items %}
-            Sensor {{ id }}
-             <table style="width:100%">
+        {% if selectedSens%}
+            <table>
                 <tr>
                     <th>Test</th>
-                    <th>Slope</th>
+                    {% for id in selectedSens %}
+                        <th>Sensor-{{ id }}</th>
+                    {% endfor %}
                 </tr>
-                {% for key, val in slope.items %}
-                <tr>
-                    {% if key == 0 %}
-                        <td>Random</td>
-                    {% elif key == 1 %}
-                        <td>One BaseStation</td>
-                    {% elif key == 2%}
-                        <td>All BaseStations</td>
-                    {% else %}
-                        <td>Moving BaseStations</td>
-                    {% endif %}
-                    <td>{{ val }} </td>
-                </tr>
+
+                {% for exp, slopelis in slopes.items %}
+                    <tr>
+                        {% if exp == 0 %}
+                            <td>Random</td>
+                        {% elif exp == 1 %}
+                            <td>One BaseStation</td>
+                        {% elif exp == 2%}
+                            <td>All BaseStations</td>
+                        {% else %}
+                            <td>Moving BaseStations</td>
+                        {% endif %}
+                        {% for slope in slopelis %}
+                            <td>{{ slope }} </td>
+                        {% endfor %}
+                    </tr>
                 {% endfor %}
-              </table>
-        {% endfor %}
+            </table>
+        {% endif %}
     </div>
 </body>

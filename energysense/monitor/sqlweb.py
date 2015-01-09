@@ -37,23 +37,43 @@ def getUserSensorIDs(request):
 def getAllSensorIDs():
     return [ele.sensor_id for ele in Sensor.objects.all()]
 
+# #getSlope: calculate sensor's cumulative current decrease rate of each test
+# #input: sensorID: sensor's id
+# #       exps: list of test ids
+# #       start_time, end_time
+# #output: slopes of each test
+# def getSlope(sensorID, exps, start_time, end_time):
+#     slope = {}
+#     for i in exps:
+#         data = Energymonitor.objects.filter(nodeid = sensorID).filter(exp = i)\
+#                 .filter(time__gte = start_time).filter(time__lte = end_time)
+#         if len(data) < 2:
+#             continue
+#         d1 = data[0]
+#         d2 = data[len(data)-1]
+#         t1 = getSecs((d1.time.replace(tzinfo=None)-datetime(1970,1,1)))
+#         t2 = getSecs((d2.time.replace(tzinfo=None)-datetime(1970,1,1)))
+#         slope[i] = (d2.cumcurr-d1.cumcurr)/(t2-t1)
+#     return slope
+
 #getSlope: calculate sensor's cumulative current decrease rate of each test
-#input: sensorID: sensor's id
+#input: selectedSens: sensor's ids which are chosen by user
 #       exps: list of test ids
-#       start_time, end_time
 #output: slopes of each test
-def getSlope(sensorID, exps, start_time, end_time):
+def getSlope(selectedSens, exps, start_time, end_time):
     slope = {}
     for i in exps:
-        data = Energymonitor.objects.filter(nodeid = sensorID).filter(exp = i)\
-                .filter(time__gte = start_time).filter(time__lte = end_time)
-        if len(data) < 2:
-            continue
-        d1 = data[0]
-        d2 = data[len(data)-1]
-        t1 = getSecs((d1.time.replace(tzinfo=None)-datetime(1970,1,1)))
-        t2 = getSecs((d2.time.replace(tzinfo=None)-datetime(1970,1,1)))
-        slope[i] = (d2.cumcurr-d1.cumcurr)/(t2-t1)
+        slope[i] = []
+        for sensorID in selectedSens:
+            data = Energymonitor.objects.filter(nodeid = sensorID).filter(exp = i)\
+                    .filter(time__gte = start_time).filter(time__lte = end_time)
+            if len(data) < 2:
+                continue
+            d1 = data[0]
+            d2 = data[len(data)-1]
+            t1 = getSecs((d1.time.replace(tzinfo=None)-datetime(1970,1,1)))
+            t2 = getSecs((d2.time.replace(tzinfo=None)-datetime(1970,1,1)))
+            slope[i].append(round((d2.cumcurr-d1.cumcurr)/(t2-t1),4))
     return slope
 
 #getVIT: retrieve sensors' voltage and cumulative current information during a period
@@ -209,14 +229,14 @@ def getData(request):
                     selectedSens[i] = int(selectedSens[i])
 
                 activeTime = getActiveTime(selectedExp, start_time, end_time)
-
+                slope = getSlope(selectedSens, exps, start_time, end_time)
                 #for each sensor, get voltage, current and current decrease rate
                 flag = True
                 for sensor in selectedSens:
                     d = Energymonitor.objects.filter(nodeid = sensor).filter(exp = selectedExp)\
                     .filter(time__gte = start_time).filter(time__lte = end_time)
 
-                    tmpslope = getSlope(sensor, exps, start_time, end_time)
+                    # tmpslope = getSlope(sensor, exps, start_time, end_time)
 
                     (tmpvoltage, tmpcurrent, tmptimeline) = getVIT(sensor, selectedExp, start_time, end_time)
                     if flag:
@@ -224,7 +244,8 @@ def getData(request):
                         flag = False
                     voltage.append(tmpvoltage)
                     current.append(tmpcurrent)
-                    slope[sensor] = tmpslope
+                    # slope[sensor] = tmpslope
+
     return (timeline, voltage, current,userSensors, selectedSens, exps, selectedExp, slope,activeTime)
 
 #getSensorsInfo:  retrieve necessary data for rendering the home_iframe.html
